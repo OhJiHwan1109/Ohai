@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oh AI 비밀번호 재설정</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d0f;
+      color: #e8e8ed;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 380px;
+      background: #13131a;
+      border: 1px solid #222230;
+      border-radius: 24px;
+      padding: 40px 32px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo h1 {
+      font-size: 26px;
+      font-weight: 800;
+      background: linear-gradient(120deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo p { color: #555; font-size: 13px; margin-top: 6px; }
+
+    .form-group { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #2a2a3a;
+      background: #0d0d0f;
+      color: #e8e8ed;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    input:focus { border-color: #6d28d9; }
+    input::placeholder { color: #444; }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 8px;
+      font-family: inherit;
+      background: linear-gradient(135deg, #6d28d9, #2563eb);
+      color: white;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+
+    .msg {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+    }
+    .msg.error { background: #2a1a1a; border: 1px solid #5a2020; color: #f87171; display: block; }
+    .msg.success { background: #1a2a1a; border: 1px solid #205a20; color: #4ade80; display: block; }
+
+    #invalid-box {
+      text-align: center;
+      display: none;
+    }
+    #invalid-box .big-icon { font-size: 48px; margin-bottom: 16px; }
+    #invalid-box h2 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    #invalid-box p { color: #888; font-size: 13px; margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <div id="reset-box">
+    <div class="logo">
+      <h1>✦ Oh AI</h1>
+      <p>비밀번호 재설정</p>
+    </div>
+
+    <div class="form-group">
+      <label>새 비밀번호 (6자 이상)</label>
+      <input type="password" id="password" placeholder="새 비밀번호 입력" />
+    </div>
+
+    <div class="form-group">
+      <label>비밀번호 확인</label>
+      <input type="password" id="confirm" placeholder="비밀번호 재입력" />
+    </div>
+
+    <button class="btn" id="reset-btn" onclick="handleReset()">비밀번호 변경</button>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div id="invalid-box">
+    <div class="big-icon">⚠️</div>
+    <h2>링크가 유효하지 않아요</h2>
+    <p>재설정 링크가 만료됐거나 잘못됐어요.<br>다시 시도해주세요.</p>
+    <button class="btn" onclick="location.href='login.html'">로그인으로 돌아가기</button>
+  </div>
+
+</div>
+
+<script>
+  const supabaseUrl = "https://ozixlswgmovdiekujgnl.supabase.co";
+const supabaseKey = "sb_publishable_gdykHlieC8UwYAiVKtiVBg_ktseJ2-o";
+const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+function showMsg(text, type) {
+  const el = document.getElementById("msg");
+  el.textContent = text;
+  el.className = "msg " + type;
+}
+
+// 항상 reset-box 보여주기 (Supabase가 토큰 자동 처리)
+document.getElementById("reset-box").style.display = "block";
+document.getElementById("invalid-box").style.display = "none";
+
+client.auth.onAuthStateChange(async (event, session) => {
+  if (event === "PASSWORD_RECOVERY") {
+    document.getElementById("reset-box").style.display = "block";
+    document.getElementById("invalid-box").style.display = "none";
+  } else if (event === "SIGNED_OUT") {
+    document.getElementById("reset-box").style.display = "none";
+    document.getElementById("invalid-box").style.display = "block";
+  }
+});
+
+async function handleReset() {
+  const password = document.getElementById("password").value;
+  const confirm = document.getElementById("confirm").value;
+  const btn = document.getElementById("reset-btn");
+
+  if (!password) { showMsg("비밀번호를 입력해주세요.", "error"); return; }
+  if (password.length < 6) { showMsg("비밀번호는 6자 이상이어야 해요.", "error"); return; }
+  if (password !== confirm) { showMsg("비밀번호가 일치하지 않아요.", "error"); return; }
+
+  btn.disabled = true;
+  btn.textContent = "변경 중...";
+
+  const { error } = await client.auth.updateUser({ password });
+
+  if (error) {
+    showMsg("변경 실패: " + error.message, "error");
+    btn.disabled = false;
+    btn.textContent = "비밀번호 변경";
+  } else {
+    showMsg("비밀번호가 변경됐어요! 로그인 페이지로 이동합니다.", "success");
+    setTimeout(() => location.href = "login.html", 2000);
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") handleReset();
+});
+</script>
+</body>
+</html>

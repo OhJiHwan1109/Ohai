@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oh AI 1.1 Max</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#c8a96e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Oh AI" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d0f;
+      color: #e8e8ed;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top Bar ── */
+    #topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: #13131a;
+      border-bottom: 1px solid #222230;
+      flex-shrink: 0;
+    }
+
+    #topbar h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      background: linear-gradient(120deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #logout-btn {
+      padding: 7px 16px;
+      border-radius: 10px;
+      border: 1px solid #333345;
+      background: transparent;
+      color: #aaa;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    #logout-btn:hover { background: #222230; color: #e8e8ed; }
+
+    /* ── Layout ── */
+    #layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 240px;
+      background: #13131a;
+      border-right: 1px solid #222230;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    #sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid #222230;
+    }
+
+    #sidebar-header h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+    }
+
+    #new-chat-btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px dashed #333345;
+      background: transparent;
+      color: #a78bfa;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+    }
+    #new-chat-btn:hover { background: #1e1e2e; border-color: #a78bfa; }
+
+    #chatList {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 10px;
+    }
+    #chatList::-webkit-scrollbar { width: 4px; }
+    #chatList::-webkit-scrollbar-track { background: transparent; }
+    #chatList::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+    .chat-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-radius: 10px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      transition: background 0.12s;
+      gap: 6px;
+    }
+    .chat-item:hover { background: #1e1e2e; }
+    .chat-item.active { background: #1e1e2e; border-left: 2px solid #a78bfa; }
+
+    .chat-item-title {
+      flex: 1;
+      font-size: 13.5px;
+      color: #ccc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-item.active .chat-item-title { color: #e8e8ed; }
+
+    .chat-item-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .chat-item:hover .chat-item-actions { opacity: 1; }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      color: #777;
+      cursor: pointer;
+      padding: 3px 5px;
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1;
+      transition: all 0.12s;
+    }
+    .icon-btn:hover { color: #e8e8ed; background: #2a2a3a; }
+
+    /* ── Main ── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Chat Box ── */
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 20%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    #chat::-webkit-scrollbar { width: 5px; }
+    #chat::-webkit-scrollbar-track { background: transparent; }
+    #chat::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+    /* ── Empty State ── */
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 12px;
+      color: #555;
+      text-align: center;
+      padding: 40px;
+    }
+    #empty-state .big-icon { font-size: 48px; opacity: 0.4; }
+    #empty-state p { font-size: 15px; }
+
+    /* ── Messages ── */
+    .message-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .message-row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+      font-weight: 700;
+    }
+    .avatar.user-avatar { background: #3730a3; color: #a5b4fc; }
+    .avatar.ai-avatar {
+      background: linear-gradient(135deg, #6d28d9, #2563eb);
+      color: white;
+    }
+
+    .bubble {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 14.5px;
+      line-height: 1.65;
+      word-break: break-word;
+    }
+    .message-row.user .bubble {
+      background: #3730a3;
+      color: #e0e7ff;
+      border-bottom-right-radius: 4px;
+    }
+    .message-row.ai .bubble {
+      background: #1a1a26;
+      color: #e8e8ed;
+      border-bottom-left-radius: 4px;
+      border: 1px solid #2a2a3a;
+    }
+
+    /* simple markdown in bubble */
+    .bubble code {
+      background: #0d0d0f;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #a78bfa;
+    }
+    .bubble pre {
+      background: #0d0d0f;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+      overflow-x: auto;
+    }
+    .bubble pre code { background: none; padding: 0; }
+    .bubble strong { color: #c4b5fd; }
+
+    /* ── Loading indicator ── */
+    .loading-bubble {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 14px 18px;
+    }
+    .dot {
+      width: 7px; height: 7px;
+      background: #555;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ── Input Area ── */
+    #input-area {
+      padding: 16px 20%;
+      background: #0d0d0f;
+      border-top: 1px solid #1e1e2e;
+      flex-shrink: 0;
+    }
+
+    #input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: #13131a;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 10px 14px;
+      transition: border-color 0.15s;
+    }
+    #input-row:focus-within { border-color: #6d28d9; }
+
+    #msg {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #e8e8ed;
+      font-size: 15px;
+      resize: none;
+      outline: none;
+      max-height: 160px;
+      min-height: 24px;
+      line-height: 1.5;
+      font-family: inherit;
+      overflow-y: auto;
+    }
+    #msg::placeholder { color: #444; }
+
+    #send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #6d28d9, #2563eb);
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    #send-btn:hover { opacity: 0.85; }
+    #send-btn:disabled { opacity: 0.35; cursor: default; }
+
+    #clear-btn {
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid #2a2a3a;
+      background: transparent;
+      color: #666;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.15s;
+    }
+    #clear-btn:hover { background: #1a1a26; color: #aaa; border-color: #444; }
+
+    .input-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1e1e2e;
+      border: 1px solid #333;
+      color: #ccc;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div id="topbar">
+    <h1>✦ Oh AI 1.1 Max</h1>
+    <button id="logout-btn" onclick="logout()">로그아웃</button>
+  </div>
+
+  <!-- Main Layout -->
+  <div id="layout">
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div id="sidebar-header">
+        <h2>대화 목록</h2>
+        <button id="new-chat-btn" onclick="newChat()">＋ 새 채팅</button>
+      </div>
+      <div id="chatList"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main">
+      <div id="chat">
+        <div id="empty-state">
+          <div class="big-icon">💬</div>
+          <p>새 채팅을 시작하거나<br>왼쪽 목록에서 채팅을 선택하세요.</p>
+        </div>
+      </div>
+
+      <div id="input-area">
+        <div id="input-row">
+          <textarea
+            id="msg"
+            rows="1"
+            placeholder="메시지를 입력하세요… (Shift+Enter로 줄바꿈)"
+          ></textarea>
+          <button id="send-btn" onclick="send()" title="전송 (Enter)">➤</button>
+        </div>
+        <div class="input-footer">
+          <button id="clear-btn" onclick="clearChat()">이 채팅 지우기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+<script>
+  /* ════════════════════════════
+     설정 — 본인 키로 교체하세요
+  ════════════════════════════ */
+  const SUPABASE_URL = "https://ozixlswgmovdiekujgnl.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_gdykHlieC8UwYAiVKtiVBg_ktseJ2-o";
+  // API 키는 server.js가 관리 — 여기선 필요 없음
+
+  /* ────────────────────────── */
+
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let chats = [];
+  let currentChatIndex = -1;
+  let currentChatId = null;
+  let isSending = false;
+
+  /* ── 유틸 ── */
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // 간단한 마크다운 → HTML 변환
+  function simpleMarkdown(text) {
+    let html = escapeHtml(text);
+    // 코드 블록
+    html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    // 인라인 코드
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // 굵게
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // 기울임
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // 줄바꿈
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2500);
+  }
+
+  /* ── 인증 ── */
+  async function getUser() {
+    const { data, error } = await client.auth.getUser();
+    if (error || !data.user) {
+      location.href = "login.html";
+      return null;
+    }
+    return data.user;
+  }
+
+  async function logout() {
+    await client.auth.signOut();
+    location.href = "login.html";
+  }
+
+  /* ── 채팅 목록 로드 ── */
+  async function loadChatsFromDB() {
+    const user = await getUser();
+    if (!user) return;
+
+    const { data, error } = await client
+      .from("chats")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at");
+
+    if (error) { console.error(error); return; }
+
+    chats = data.map(chat => ({
+      id: String(chat.id),
+      title: chat.title,
+      messages: []
+    }));
+
+    if (chats.length === 0) {
+      await newChat();
+      return;
+    }
+
+    loadChatList();
+    openChat(0);
+  }
+
+  /* ── 사이드바 렌더 ── */
+  function loadChatList() {
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
+    chats.forEach((chat, index) => {
+      const el = document.createElement("div");
+      el.className = "chat-item" + (index === currentChatIndex ? " active" : "");
+      el.innerHTML = `
+        <span class="chat-item-title">${escapeHtml(chat.title)}</span>
+        <div class="chat-item-actions">
+          <button class="icon-btn" title="이름 변경" onclick="event.stopPropagation(); renameChat(${index})">✏️</button>
+          <button class="icon-btn" title="삭제" onclick="event.stopPropagation(); deleteChat(${index})">🗑️</button>
+        </div>
+      `;
+      el.addEventListener("click", () => openChat(index));
+      list.appendChild(el);
+    });
+  }
+
+  /* ── 새 채팅 ── */
+  async function newChat() {
+    const user = await getUser();
+    if (!user) return;
+
+    const { data: chat, error } = await client
+      .from("chats")
+      .insert({ user_id: user.id, title: "새 채팅" })
+      .select()
+      .single();
+
+    if (error) { console.error(error); showToast("채팅 생성 실패"); return; }
+
+    chats.push({ id: String(chat.id), title: "새 채팅", messages: [] });
+    currentChatIndex = chats.length - 1;
+    currentChatId = String(chat.id);
+
+    loadChatList();
+    renderChat();
+  }
+
+  /* ── 이름 변경 ── */
+  async function renameChat(index) {
+    const name = prompt("채팅 이름 변경", chats[index].title);
+    if (!name || !name.trim()) return;
+
+    const { error } = await client
+      .from("chats")
+      .update({ title: name.trim() })
+      .eq("id", chats[index].id);
+
+    if (error) { showToast("이름 변경 실패"); return; }
+
+    chats[index].title = name.trim();
+    loadChatList();
+  }
+
+  /* ── 채팅 삭제 ── */
+  async function deleteChat(index) {
+    if (!confirm(`"${chats[index].title}" 채팅을 삭제할까요?`)) return;
+
+    const id = chats[index].id;
+
+    await client.from("messages").delete().eq("chat_id", id);
+    await client.from("chats").delete().eq("id", id);
+
+    chats.splice(index, 1);
+
+    if (chats.length === 0) {
+      await newChat();
+      return;
+    }
+
+    currentChatIndex = 0;
+    currentChatId = chats[0].id;
+    loadChatList();
+    openChat(0);
+    showToast("채팅이 삭제되었습니다.");
+  }
+
+  /* ── 채팅 열기 ── */
+  async function openChat(index) {
+    currentChatIndex = index;
+    currentChatId = chats[index].id;
+    loadChatList();
+    await loadMessages(currentChatId);
+  }
+
+  /* ── 메시지 로드 ── */
+  async function loadMessages(chatId) {
+    const user = await getUser();
+    if (!user) return;
+
+    const { data, error } = await client
+      .from("messages")
+      .select("*")
+      .eq("chat_id", String(chatId))
+      .eq("user_id", user.id)
+      .order("created_at");
+
+    if (error) { console.error(error); return; }
+
+    chats[currentChatIndex].messages = data.map(msg => ({
+      type: msg.role === "user" ? "user" : "ai",
+      text: msg.content
+    }));
+
+    renderChat();
+  }
+
+  /* ── 채팅 렌더 ── */
+  function renderChat() {
+    const box = document.getElementById("chat");
+    box.innerHTML = "";
+
+    const msgs = chats[currentChatIndex]?.messages ?? [];
+
+    if (msgs.length === 0) {
+      box.innerHTML = `
+        <div id="empty-state">
+          <div class="big-icon">💬</div>
+          <p>첫 메시지를 입력해 대화를 시작해보세요.</p>
+        </div>
+      `;
+      return;
+    }
+
+    msgs.forEach(msg => appendBubble(msg.type, msg.text, false));
+    box.scrollTop = box.scrollHeight;
+  }
+
+  /* ── 말풍선 추가 ── */
+  function appendBubble(type, text, scroll = true) {
+    const box = document.getElementById("chat");
+
+    // 빈 상태 제거
+    const empty = document.getElementById("empty-state");
+    if (empty) empty.remove();
+
+    const row = document.createElement("div");
+    row.className = `message-row ${type}`;
+    row.innerHTML = `
+      <div class="avatar ${type === 'user' ? 'user-avatar' : 'ai-avatar'}">
+        ${type === 'user' ? '나' : 'AI'}
+      </div>
+      <div class="bubble">${simpleMarkdown(text)}</div>
+    `;
+    box.appendChild(row);
+    if (scroll) box.scrollTop = box.scrollHeight;
+    return row;
+  }
+
+  /* ── 로딩 표시 ── */
+  function showLoading() {
+    const box = document.getElementById("chat");
+    const empty = document.getElementById("empty-state");
+    if (empty) empty.remove();
+
+    const row = document.createElement("div");
+    row.className = "message-row ai";
+    row.id = "loading-row";
+    row.innerHTML = `
+      <div class="avatar ai-avatar">AI</div>
+      <div class="bubble loading-bubble">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    `;
+    box.appendChild(row);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function hideLoading() {
+    const row = document.getElementById("loading-row");
+    if (row) row.remove();
+  }
+
+  /* ── DB에 메시지 저장 ── */
+  async function saveMessage(role, content) {
+    const user = await getUser();
+    if (!user) return;
+
+    const { error } = await client.from("messages").insert({
+      chat_id: String(currentChatId),
+      user_id: user.id,
+      role,
+      content
+    });
+    if (error) console.error("메시지 저장 오류:", error);
+  }
+
+  /* ── 채팅 제목 자동 설정 ── */
+  async function autoRenameChat(firstMessage) {
+    if (chats[currentChatIndex].title !== "새 채팅") return;
+    const newTitle = firstMessage.slice(0, 28) + (firstMessage.length > 28 ? "…" : "");
+    chats[currentChatIndex].title = newTitle;
+    await client.from("chats").update({ title: newTitle }).eq("id", currentChatId);
+    loadChatList();
+  }
+
+  /* ── 전송 ── */
+  async function send() {
+    if (isSending) return;
+
+    const input = document.getElementById("msg");
+    const text = input.value.trim();
+    if (!text) return;
+
+    isSending = true;
+    document.getElementById("send-btn").disabled = true;
+    input.value = "";
+    input.style.height = "auto";
+
+    // 사용자 메시지 추가
+    chats[currentChatIndex].messages.push({ type: "user", text });
+    appendBubble("user", text);
+    await saveMessage("user", text);
+    await autoRenameChat(text);
+
+    // 로딩 표시
+    showLoading();
+
+    try {
+      const user = await getUser();
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          userId: user.id
+        })
+      });
+
+      const data = await res.json();
+      hideLoading();
+
+      if (data.choices && data.choices[0]?.message?.content) {
+        const reply = data.choices[0].message.content;
+        chats[currentChatIndex].messages.push({ type: "ai", text: reply });
+        appendBubble("ai", reply);
+        // server.js가 이미 DB에 저장하므로 중복 저장 안 함
+      } else if (data.error) {
+        appendBubble("ai", `⚠️ 오류: ${data.error}`);
+      } else {
+        appendBubble("ai", "⚠️ 응답을 받지 못했어요. 서버가 실행 중인지 확인해주세요.");
+      }
+
+    } catch (err) {
+      hideLoading();
+      appendBubble("ai", `⚠️ 요청 실패: ${err.message}`);
+    }
+
+    isSending = false;
+    document.getElementById("send-btn").disabled = false;
+    input.focus();
+  }
+
+  /* ── 채팅 지우기 (DB 포함) ── */
+  async function clearChat() {
+    if (!confirm("이 채팅의 모든 메시지를 삭제할까요?")) return;
+
+    const user = await getUser();
+    if (!user) return;
+
+    await client
+      .from("messages")
+      .delete()
+      .eq("chat_id", String(currentChatId))
+      .eq("user_id", user.id);
+
+    chats[currentChatIndex].messages = [];
+    renderChat();
+    showToast("채팅이 초기화되었습니다.");
+  }
+
+  /* ── 텍스트에어리어 자동 높이 ── */
+  const msgEl = document.getElementById("msg");
+  msgEl.addEventListener("input", () => {
+    msgEl.style.height = "auto";
+    msgEl.style.height = Math.min(msgEl.scrollHeight, 160) + "px";
+  });
+
+  /* ── Enter 전송 / Shift+Enter 줄바꿈 ── */
+  msgEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  /* ── 초기 로드 ── */
+  loadChatsFromDB();
+
+  /* ── PWA 서비스워커 등록 ── */
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js")
+        .then(() => console.log("SW 등록 완료"))
+        .catch((e) => console.log("SW 오류:", e));
+    });
+  }
+</script>
+</body>
+</html>

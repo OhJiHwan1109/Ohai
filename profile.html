@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oh AI 프로필</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d0f;
+      color: #e8e8ed;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 380px;
+      background: #13131a;
+      border: 1px solid #222230;
+      border-radius: 24px;
+      padding: 40px 32px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo h1 {
+      font-size: 26px;
+      font-weight: 800;
+      background: linear-gradient(120deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo p { color: #555; font-size: 13px; margin-top: 6px; }
+
+    .avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6d28d9, #2563eb);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+      margin: 0 auto 20px;
+    }
+
+    .user-email {
+      text-align: center;
+      color: #666;
+      font-size: 13px;
+      margin-bottom: 28px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 14px;
+    }
+
+    .form-group { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #2a2a3a;
+      background: #0d0d0f;
+      color: #e8e8ed;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    input:focus { border-color: #6d28d9; }
+    input::placeholder { color: #444; }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 8px;
+      font-family: inherit;
+      background: linear-gradient(135deg, #6d28d9, #2563eb);
+      color: white;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+
+    .btn-secondary {
+      background: #1e1e2e;
+      color: #aaa;
+      border: 1px solid #2a2a3a;
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-secondary:hover { background: #2a2a3a; color: #e8e8ed; }
+
+    .divider {
+      height: 1px;
+      background: #222230;
+      margin: 24px 0;
+    }
+
+    .msg {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+    }
+    .msg.error { background: #2a1a1a; border: 1px solid #5a2020; color: #f87171; display: block; }
+    .msg.success { background: #1a2a1a; border: 1px solid #205a20; color: #4ade80; display: block; }
+
+    .back-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+    }
+    .back-link a {
+      color: #a78bfa;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .back-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">
+    <h1>✦ Oh AI</h1>
+    <p>프로필 설정</p>
+  </div>
+
+  <div class="avatar" id="avatar">?</div>
+  <div class="user-email" id="user-email">불러오는 중...</div>
+
+  <!-- 이름 변경 -->
+  <div class="section-title">이름 변경</div>
+  <div class="form-group">
+    <label>이름</label>
+    <input type="text" id="name" placeholder="새 이름 입력" />
+  </div>
+  <button class="btn" id="name-btn" onclick="updateName()">이름 변경</button>
+  <div class="msg" id="name-msg"></div>
+
+  <div class="divider"></div>
+
+  <!-- 비밀번호 변경 -->
+  <div class="section-title">비밀번호 변경</div>
+  <div class="form-group">
+    <label>새 비밀번호 (6자 이상)</label>
+    <input type="password" id="new-password" placeholder="새 비밀번호 입력" />
+  </div>
+  <div class="form-group">
+    <label>비밀번호 확인</label>
+    <input type="password" id="confirm-password" placeholder="비밀번호 재입력" />
+  </div>
+  <button class="btn" id="pw-btn" onclick="updatePassword()">비밀번호 변경</button>
+  <div class="msg" id="pw-msg"></div>
+
+  <div class="divider"></div>
+
+  <button class="btn-secondary" onclick="location.href='index.html'">← 채팅으로 돌아가기</button>
+</div>
+
+<script>
+  const supabaseUrl = "https://ozixlswgmovdiekujgnl.supabase.co";
+  const supabaseKey = "sb_publishable_gdykHlieC8UwYAiVKtiVBg_ktseJ2-o";
+  const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function loadUser() {
+    const { data, error } = await client.auth.getUser();
+    if (error || !data.user) { location.href = "login.html"; return; }
+
+    const user = data.user;
+    const name = user.user_metadata?.name || "사용자";
+    const email = user.email;
+
+    document.getElementById("user-email").textContent = email;
+    document.getElementById("name").value = name;
+    document.getElementById("avatar").textContent = name.charAt(0).toUpperCase();
+  }
+  loadUser();
+
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = "msg " + type;
+    setTimeout(() => { el.className = "msg"; el.textContent = ""; }, 3000);
+  }
+
+  async function updateName() {
+    const name = document.getElementById("name").value.trim();
+    const btn = document.getElementById("name-btn");
+
+    if (!name) { showMsg("name-msg", "이름을 입력해주세요.", "error"); return; }
+
+    btn.disabled = true;
+    btn.textContent = "변경 중...";
+
+    const { error } = await client.auth.updateUser({
+      data: { name }
+    });
+
+    if (error) {
+      showMsg("name-msg", "변경 실패: " + error.message, "error");
+    } else {
+      document.getElementById("avatar").textContent = name.charAt(0).toUpperCase();
+      showMsg("name-msg", "이름이 변경됐어요!", "success");
+    }
+
+    btn.disabled = false;
+    btn.textContent = "이름 변경";
+  }
+
+  async function updatePassword() {
+    const password = document.getElementById("new-password").value;
+    const confirm = document.getElementById("confirm-password").value;
+    const btn = document.getElementById("pw-btn");
+
+    if (!password) { showMsg("pw-msg", "비밀번호를 입력해주세요.", "error"); return; }
+    if (password.length < 6) { showMsg("pw-msg", "비밀번호는 6자 이상이어야 해요.", "error"); return; }
+    if (password !== confirm) { showMsg("pw-msg", "비밀번호가 일치하지 않아요.", "error"); return; }
+
+    btn.disabled = true;
+    btn.textContent = "변경 중...";
+
+    const { error } = await client.auth.updateUser({ password });
+
+    if (error) {
+      showMsg("pw-msg", "변경 실패: " + error.message, "error");
+    } else {
+      document.getElementById("new-password").value = "";
+      document.getElementById("confirm-password").value = "";
+      showMsg("pw-msg", "비밀번호가 변경됐어요!", "success");
+    }
+
+    btn.disabled = false;
+    btn.textContent = "비밀번호 변경";
+  }
+</script>
+</body>
+</html>

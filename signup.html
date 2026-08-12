@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oh AI 회원가입</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d0f;
+      color: #e8e8ed;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 380px;
+      background: #13131a;
+      border: 1px solid #222230;
+      border-radius: 24px;
+      padding: 40px 32px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo h1 {
+      font-size: 26px;
+      font-weight: 800;
+      background: linear-gradient(120deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo p { color: #555; font-size: 13px; margin-top: 6px; }
+
+    .form-group { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #2a2a3a;
+      background: #0d0d0f;
+      color: #e8e8ed;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    input:focus { border-color: #6d28d9; }
+    input::placeholder { color: #444; }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 8px;
+      font-family: inherit;
+      background: linear-gradient(135deg, #6d28d9, #2563eb);
+      color: white;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+
+    .msg {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+    }
+    .msg.error { background: #2a1a1a; border: 1px solid #5a2020; color: #f87171; display: block; }
+    .msg.success { background: #1a2a1a; border: 1px solid #205a20; color: #4ade80; display: block; }
+
+    .bottom-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #666;
+    }
+    .bottom-link a {
+      color: #a78bfa;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .bottom-link a:hover { text-decoration: underline; }
+
+    /* 이메일 인증 화면 */
+    #signup-box { display: block; }
+    #verify-box { display: none; text-align: center; }
+    .big-icon { font-size: 52px; margin-bottom: 16px; }
+    #verify-box h2 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+    #verify-box p { color: #888; font-size: 13px; line-height: 1.7; margin-bottom: 24px; }
+    .email-highlight { color: #a78bfa; font-weight: 600; }
+    .back-btn {
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 14px;
+      font-family: inherit;
+    }
+    .back-btn:hover { color: #aaa; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <div id="signup-box">
+    <div class="logo">
+      <h1>✦ Oh AI</h1>
+      <p>회원가입</p>
+    </div>
+
+    <div class="form-group">
+      <label>이름</label>
+      <input type="text" id="name" placeholder="이름 입력" />
+    </div>
+
+    <div class="form-group">
+      <label>이메일</label>
+      <input type="email" id="email" placeholder="example@email.com" />
+    </div>
+
+    <div class="form-group">
+      <label>비밀번호 (6자 이상)</label>
+      <input type="password" id="password" placeholder="비밀번호 입력" />
+    </div>
+
+    <div class="form-group">
+      <label>비밀번호 확인</label>
+      <input type="password" id="confirm" placeholder="비밀번호 재입력" />
+    </div>
+
+    <button class="btn" id="signup-btn" onclick="handleSignup()">회원가입</button>
+
+    <div class="msg" id="msg"></div>
+
+    <div class="bottom-link">
+      이미 계정이 있으신가요? <a href="login.html">로그인</a>
+    </div>
+  </div>
+
+  <div id="verify-box">
+    <div class="big-icon">📧</div>
+    <h2>이메일을 확인해주세요</h2>
+    <p>
+      <span class="email-highlight" id="verify-email"></span><br>
+      으로 인증 링크를 보냈어요.<br>
+      링크를 클릭하면 로그인 페이지로 이동합니다.
+    </p>
+    <button class="btn" onclick="resendEmail()">인증 메일 재전송</button>
+    <div class="msg" id="verify-msg"></div>
+    <br>
+    <button class="back-btn" onclick="backToSignup()">← 회원가입으로 돌아가기</button>
+  </div>
+
+</div>
+
+<script>
+  const supabaseUrl = "https://ozixlswgmovdiekujgnl.supabase.co";
+  const supabaseKey = "sb_publishable_gdykHlieC8UwYAiVKtiVBg_ktseJ2-o";
+  const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  let lastEmail = "";
+
+  function showMsg(text, type) {
+    const el = document.getElementById("msg");
+    el.textContent = text;
+    el.className = "msg " + type;
+  }
+
+  async function handleSignup() {
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const confirm = document.getElementById("confirm").value;
+    const btn = document.getElementById("signup-btn");
+
+    if (!name || !email || !password) { showMsg("모든 항목을 입력해주세요.", "error"); return; }
+    if (password !== confirm) { showMsg("비밀번호가 일치하지 않아요.", "error"); return; }
+    if (password.length < 6) { showMsg("비밀번호는 6자 이상이어야 해요.", "error"); return; }
+
+    btn.disabled = true;
+    btn.textContent = "처리 중...";
+
+    const { error } = await client.auth.signUp({
+      email,
+      password,
+      options: { data: { name } }
+    });
+
+    if (error) {
+      showMsg("회원가입 실패: " + error.message, "error");
+      btn.disabled = false;
+      btn.textContent = "회원가입";
+    } else {
+      lastEmail = email;
+      document.getElementById("signup-box").style.display = "none";
+      document.getElementById("verify-box").style.display = "block";
+      document.getElementById("verify-email").textContent = email;
+    }
+  }
+
+  async function resendEmail() {
+    if (!lastEmail) return;
+    const { error } = await client.auth.resend({ type: "signup", email: lastEmail });
+    const el = document.getElementById("verify-msg");
+    if (error) {
+      el.textContent = "재전송 실패: " + error.message;
+      el.className = "msg error";
+    } else {
+      el.textContent = "인증 메일을 다시 보냈어요!";
+      el.className = "msg success";
+    }
+  }
+
+  function backToSignup() {
+    document.getElementById("signup-box").style.display = "block";
+    document.getElementById("verify-box").style.display = "none";
+    document.getElementById("signup-btn").disabled = false;
+    document.getElementById("signup-btn").textContent = "회원가입";
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleSignup();
+  });
+</script>
+</body>
+</html>

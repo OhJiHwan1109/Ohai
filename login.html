@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oh AI 로그인</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d0f;
+      color: #e8e8ed;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 380px;
+      background: #13131a;
+      border: 1px solid #222230;
+      border-radius: 24px;
+      padding: 40px 32px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo h1 {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(120deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo p { color: #555; font-size: 13px; margin-top: 6px; }
+
+    .form-group { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #2a2a3a;
+      background: #0d0d0f;
+      color: #e8e8ed;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    input:focus { border-color: #6d28d9; }
+    input::placeholder { color: #444; }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 8px;
+      font-family: inherit;
+      background: linear-gradient(135deg, #6d28d9, #2563eb);
+      color: white;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+
+    .forgot {
+      text-align: right;
+      margin-top: 6px;
+    }
+    .forgot a {
+      color: #666;
+      font-size: 12px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .forgot a:hover { color: #a78bfa; }
+
+    .msg {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+    }
+    .msg.error { background: #2a1a1a; border: 1px solid #5a2020; color: #f87171; display: block; }
+    .msg.success { background: #1a2a1a; border: 1px solid #205a20; color: #4ade80; display: block; }
+
+    .bottom-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #666;
+    }
+    .bottom-link a {
+      color: #a78bfa;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .bottom-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">
+    <h1>✦ Oh AI</h1>
+    <p>1.1 Max</p>
+  </div>
+
+  <div class="form-group">
+    <label>이메일</label>
+    <input type="email" id="email" placeholder="example@email.com" />
+  </div>
+
+  <div class="form-group">
+    <label>비밀번호</label>
+    <input type="password" id="password" placeholder="비밀번호 입력" />
+  </div>
+
+  <div class="forgot">
+    <a onclick="forgotPassword()">비밀번호 찾기</a>
+  </div>
+
+  <button class="btn" id="login-btn" onclick="handleLogin()">로그인</button>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="bottom-link">
+    계정이 없으신가요? <a href="signup.html">회원가입</a>
+  </div>
+</div>
+
+<script>
+  const supabaseUrl = "https://ozixlswgmovdiekujgnl.supabase.co";
+  const supabaseKey = "sb_publishable_gdykHlieC8UwYAiVKtiVBg_ktseJ2-o";
+  const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function checkLogin() {
+    const { data } = await client.auth.getSession();
+    if (data.session) location.href = "index.html";
+  }
+  checkLogin();
+
+  function showMsg(text, type) {
+    const el = document.getElementById("msg");
+    el.textContent = text;
+    el.className = "msg " + type;
+  }
+
+  async function handleLogin() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const btn = document.getElementById("login-btn");
+
+    if (!email || !password) { showMsg("이메일과 비밀번호를 입력해주세요.", "error"); return; }
+
+    btn.disabled = true;
+    btn.textContent = "로그인 중...";
+
+    const { error } = await client.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      showMsg("로그인 실패: " + error.message, "error");
+      btn.disabled = false;
+      btn.textContent = "로그인";
+    } else {
+      location.href = "index.html";
+    }
+  }
+
+  async function forgotPassword() {
+    const email = document.getElementById("email").value.trim();
+    if (!email) { showMsg("이메일을 먼저 입력해주세요.", "error"); return; }
+
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/reset.html"
+    });
+
+    if (error) {
+      showMsg("실패: " + error.message, "error");
+    } else {
+      showMsg("비밀번호 재설정 링크를 이메일로 보냈어요!", "success");
+    }
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleLogin();
+  });
+</script>
+</body>
+</html>
